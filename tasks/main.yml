@@ -1,0 +1,33 @@
+---
+#
+# This role should be run with sudo=yes sudo_user={{ endeca_user }}.
+#
+
+#
+# MDEX
+#
+
+- set_fact:
+    mdex_archive: "V46002-01.zip"
+    mdex_install: "OCmdex6.5.1-Linux64_829811.sh"
+    tmpdir: /tmp
+
+#- name: create temporary dir
+#  shell: mktemp -d
+#  register: tmpdir
+
+- name: expand MDEX archive
+  unarchive: 
+    src="{{ mdex_archive }}"
+    dest="{{ tmpdir }}"
+    creates="{{ tmpdir }}/{{ mdex_install }}"
+
+- name: install mdex
+  command: "{{ tmpdir }}/{{ mdex_install }} --silent --target {{ endeca_root }}" 
+  args:
+    creates: "{{ endeca_root }}/endeca/MDEX"
+
+- name: source mdex environment vars
+  lineinfile: 
+    dest=/home/{{ endeca_user }}/.bashrc 
+    line="source {{ endeca_root }}/endeca/MDEX/6.5.1/mdex_setup_sh.ini"
