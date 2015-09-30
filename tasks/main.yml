@@ -1,33 +1,40 @@
 ---
 #
-# This role should be run with sudo=yes sudo_user={{ endeca_user }}.
-#
-
-#
 # MDEX
 #
 
 - set_fact:
-    mdex_archive: "V46002-01.zip"
-    mdex_install: "OCmdex6.5.1-Linux64_829811.sh"
-    tmpdir: /tmp
+    install_archive: "V46002-01.zip"
+    install_executable: "OCmdex6.5.1-Linux64_829811.sh"
 
-#- name: create temporary dir
-#  shell: mktemp -d
-#  register: tmpdir
+- name: temporary directory for install
+  register: mktemp
+  command: mktemp -d
+
+- name: download installation archive
+  get_url:
+  args:
+    url: "{{ install_archive_url }}"
+    dest: "{{ playbook_dir }}/{{ install_archive }}"
+  when: install_archive_url is defined
 
 - name: expand MDEX archive
   unarchive: 
-    src="{{ mdex_archive }}"
-    dest="{{ tmpdir }}"
-    creates="{{ tmpdir }}/{{ mdex_install }}"
+    src="{{ install_archive }}"
+    dest="{{ mktemp.stdout }}"
+    creates="{{ mktemp.stdout }}/{{ install_executable }}"
 
 - name: install mdex
-  command: "{{ tmpdir }}/{{ mdex_install }} --silent --target {{ endeca_root }}" 
+  command: "{{ mktemp.stdout }}/{{ install_executable }} --silent --target {{ install_root }}" 
   args:
-    creates: "{{ endeca_root }}/endeca/MDEX"
+    creates: "{{ install_root }}/endeca/MDEX"
 
-- name: source mdex environment vars
-  lineinfile: 
-    dest=/home/{{ endeca_user }}/.bashrc 
-    line="source {{ endeca_root }}/endeca/MDEX/6.5.1/mdex_setup_sh.ini"
+#- name: source mdex environment vars
+#  lineinfile: 
+#    dest=/home/{{ endeca_user }}/.bashrc 
+#    line="source {{ install_root }}/endeca/MDEX/6.5.1/mdex_setup_sh.ini"
+
+- name: clean up temporary directory
+  file: 
+    state=absent 
+    path="{{ mktemp.stdout }}"
